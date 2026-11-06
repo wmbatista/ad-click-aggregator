@@ -1,0 +1,50 @@
+# --- Gradle ---
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# --- Kotlin ---
+.kotlin/
+*.class
+*.log
+hs_err_pid*
+replay_pid*
+
+# --- Maven (in case any module uses it) ---
+target/
+
+# --- IntelliJ IDEA ---
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+# --- VS Code ---
+.vscode/
+
+# --- Eclipse ---
+.classpath
+.project
+.settings/
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+
+# --- Environment / secrets ---
+.env
+.env.*
+!.env.example
+
+# --- Local infrastructure data (Docker volumes, etc.) ---
+data/
+volumes/
+*.pid
