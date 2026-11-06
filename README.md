@@ -50,12 +50,50 @@ By the end of this project we will have:
 
 ## Getting Started
 
-_Coming soon._ This section will describe the prerequisites and how to run the bootstrap script.
+### Prerequisites
+
+- JDK 25 (used as the Kotlin JVM toolchain)
+
+The Gradle wrapper is committed, so no local Gradle installation is needed.
+
+### Building
+
+```bash
+./gradlew build                            # compile and test every module
+./gradlew :services:click-processor:run    # run a single service
+```
+
+_The bootstrap script that brings up the whole system will be documented here once it exists._
 
 ## Repository Layout
 
-_Coming soon._ This section will describe how services, infrastructure, scripts, and guides are
-organized in the repository.
+The repository is a single Gradle multi-project build containing every service, shared library,
+and supporting asset:
+
+```
+ad-click-aggregator/
+├── build-logic/               # Gradle convention plugins shared by all modules
+├── gradle/libs.versions.toml  # version catalog (single source of dependency versions)
+├── settings.gradle.kts        # module declarations
+├── libs/
+│   └── click-event/           # shared click event contract
+├── services/
+│   ├── click-processor/       # receives clicks, publishes events, redirects users
+│   ├── stream-processor/      # aggregates clicks into 1-minute windows
+│   └── query-service/         # serves click metrics to advertisers
+├── infra/                     # Docker Compose and infrastructure configs (Kafka, ClickHouse, ...)
+├── scripts/                   # bootstrap and use case simulation scripts
+└── docs/                      # validation guides
+```
+
+Conventions:
+
+- Services depend only on modules under `libs/`, never on each other, so each one remains
+  independently deployable.
+- Modules apply one of the convention plugins from `build-logic/`:
+  `kotlin-library-convention` for libraries and `kotlin-service-convention` for runnable services.
+- Dependency versions are declared only in `gradle/libs.versions.toml`.
+- New modules must be registered in `settings.gradle.kts`.
 
 ## References
 
