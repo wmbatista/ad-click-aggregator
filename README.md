@@ -48,6 +48,13 @@ By the end of this project we will have:
 3. **Validation guides** that show how to verify each use case end to end — follow-up queries against
    ClickHouse, inspection of Kafka topics, service logs to check, and the expected results.
 
+### Scope
+
+The services in this project are intentionally simple: they exist to demonstrate the system design,
+not to be production-ready. Concerns that are essential in a real production system but unrelated to
+the design under study may be left out or only stubbed, such as authentication and authorization,
+rate limiting, secrets management, TLS, multi-tenancy, and comprehensive observability.
+
 ## Getting Started
 
 ### Prerequisites
