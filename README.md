@@ -30,6 +30,25 @@ query click metrics over time.
 - **Near real-time** — metrics should be available for querying as soon as possible after a click.
 - **Idempotency** — the same click must not be counted more than once.
 
+## Architecture
+
+The diagram below is the reference architecture for this project and will guide its development.
+Each component in the diagram maps to a module or piece of infrastructure in this repository.
+
+![Ad Click Aggregator architecture](docs/architecture.png)
+
+| Diagram component     | Implementation                                                        |
+|-----------------------|-----------------------------------------------------------------------|
+| click service         | `services/click-processor`: receives `POST /click` and redirects the user |
+| click events          | Kafka topic, partitioned by `adId`                                    |
+| aggregation service   | `services/stream-processor`: groups clicks by `adId` and minute, upserts counts |
+| OLAP DB               | ClickHouse, storing `adId`, minute timestamp and `count`              |
+| query service         | `services/query-service`: serves click metrics to advertisers         |
+
+The aggregation service starts as a plain Kafka consumer that aggregates in memory, writes a batch
+to the OLAP store and then commits its offsets. The diagram notes that it can later be replaced by a
+stream processor such as Apache Flink for stronger guarantees (checkpointing, resilience).
+
 ## Tech Stack
 
 - **Services:** [Kotlin](https://kotlinlang.org/) (JVM)
@@ -90,7 +109,7 @@ ad-click-aggregator/
 │   └── query-service/         # serves click metrics to advertisers
 ├── infra/                     # Docker Compose and infrastructure configs (Kafka, ClickHouse, ...)
 ├── scripts/                   # bootstrap and use case simulation scripts
-└── docs/                      # validation guides
+└── docs/                      # architecture diagram and validation guides
 ```
 
 Conventions:
