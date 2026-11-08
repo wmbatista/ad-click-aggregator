@@ -13,11 +13,15 @@ import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.StringSerializer
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.test.system.CapturedOutput
+import org.springframework.boot.test.system.OutputCaptureExtension
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.context.DynamicPropertyRegistry
@@ -34,6 +38,7 @@ import java.util.UUID
  * committed only once the counts are stored.
  */
 @Testcontainers
+@ExtendWith(OutputCaptureExtension::class)
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.NONE,
     properties = [
@@ -70,7 +75,7 @@ class StreamProcessorIntegrationTest {
     }
 
     @Test
-    fun `clickhouse outage holds offsets until the insert succeeds`() {
+    fun `clickhouse outage holds offsets until the insert succeeds`(output: CapturedOutput) {
         jdbc.execute("RENAME TABLE clicks_per_minute TO clicks_per_minute_off")
         try {
             val committedBefore = committedOffsets()
@@ -79,6 +84,11 @@ class StreamProcessorIntegrationTest {
 
             Thread.sleep(3_000) // several retries at 100-500 ms
             assertEquals(committedBefore, committedOffsets(), "offsets committed while the insert was failing")
+            // An outage must be visible in the logs, not only as consumer lag.
+            assertTrue(
+                output.out.lines().any { "WARN" in it && "Batch insert failed" in it },
+                "no WARN logged while the insert was failing",
+            )
         } finally {
             jdbc.execute("RENAME TABLE clicks_per_minute_off TO clicks_per_minute")
         }

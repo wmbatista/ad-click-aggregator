@@ -5,7 +5,12 @@ import com.wmbatista.adclick.streamprocessor.adapter.outbound.clickhouse.ClickHo
 import com.wmbatista.adclick.streamprocessor.application.port.inbound.AggregateClicksUseCase
 import com.wmbatista.adclick.streamprocessor.application.port.outbound.SaveClickCountsPort
 import com.wmbatista.adclick.streamprocessor.application.service.AggregateClicksService
+import org.apache.commons.logging.LogFactory
+import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.apache.kafka.clients.consumer.ConsumerRecords
 import org.springframework.context.annotation.Bean
+import org.springframework.core.log.LogAccessor
+import org.springframework.kafka.listener.RetryListener
 import org.springframework.context.annotation.Configuration
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.kafka.listener.CommonErrorHandler
@@ -42,5 +47,28 @@ class StreamProcessorConfiguration {
      * whole batch with [clickBatchBackOff], without committing, until the listener succeeds.
      */
     @Bean
-    fun kafkaErrorHandler(clickBatchBackOff: BackOff): CommonErrorHandler = DefaultErrorHandler(clickBatchBackOff)
+    fun kafkaErrorHandler(clickBatchBackOff: BackOff): CommonErrorHandler =
+        DefaultErrorHandler(clickBatchBackOff).apply { setRetryListeners(BatchRetryLogger()) }
+
+    /**
+     * Spring Kafka logs batch retries only at DEBUG, and the recoverer (which logs at ERROR) never
+     * runs because retries never stop. Without this, an outage shows only as consumer lag.
+     */
+    private class BatchRetryLogger : RetryListener {
+        // Single-record path: not used by this batch listener, but required by the interface.
+        override fun failedDelivery(record: ConsumerRecord<*, *>, ex: Exception?, deliveryAttempt: Int) {
+            logger.warn { "Delivery failed for ${record.topic()}-${record.partition()}@${record.offset()}: $ex" }
+        }
+
+        override fun failedDelivery(records: ConsumerRecords<*, *>, ex: Exception, deliveryAttempt: Int) {
+            logger.warn(ex) {
+                "Batch insert failed (attempt $deliveryAttempt, ${records.count()} records from " +
+                    "${records.partitions()}); offsets not committed, retrying"
+            }
+        }
+
+        private companion object {
+            val logger = LogAccessor(LogFactory.getLog(StreamProcessorConfiguration::class.java))
+        }
+    }
 }
