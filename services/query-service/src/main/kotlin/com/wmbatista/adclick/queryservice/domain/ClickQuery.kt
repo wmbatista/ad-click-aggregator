@@ -29,15 +29,15 @@ class ClickQuery private constructor(
         fun of(adId: String, from: Instant, to: Instant, granularity: Granularity): ClickQuery {
             if (adId.isBlank()) throw InvalidClickQueryException("adId must not be blank")
             if (from >= to) throw InvalidClickQueryException("from ($from) must be before to ($to)")
+            // Checked before aligning too: rounding up an Instant near Instant.MAX would overflow.
+            if (from < EARLIEST || to > LATEST) throw outOfRange()
 
             val unit = granularity.unit
             val alignedFrom = from.truncatedTo(unit)
             val truncatedTo = to.truncatedTo(unit)
             val alignedTo = if (truncatedTo == to) to else truncatedTo.plus(1, unit)
 
-            if (alignedFrom < EARLIEST || alignedTo > LATEST) {
-                throw InvalidClickQueryException("from and to must be between $EARLIEST and $LATEST")
-            }
+            if (alignedFrom < EARLIEST || alignedTo > LATEST) throw outOfRange()
             val buckets = Duration.between(alignedFrom, alignedTo).dividedBy(unit.duration)
             if (buckets > MAX_BUCKETS) {
                 throw InvalidClickQueryException(
@@ -46,5 +46,7 @@ class ClickQuery private constructor(
             }
             return ClickQuery(adId, alignedFrom, alignedTo, granularity)
         }
+
+        private fun outOfRange() = InvalidClickQueryException("from and to must be between $EARLIEST and $LATEST")
     }
 }

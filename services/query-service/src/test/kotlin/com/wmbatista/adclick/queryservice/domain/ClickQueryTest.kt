@@ -91,4 +91,11 @@ class ClickQueryTest {
     fun `rejects ranges outside the ClickHouse DateTime range`(from: String, to: String) {
         assertThrows<InvalidClickQueryException> { ClickQuery.of("ad-1", t(from), t(to), MINUTE) }
     }
+
+    @Test
+    fun `rejects a to that cannot be rounded up`() {
+        assertThrows<InvalidClickQueryException> {
+            ClickQuery.of("ad-1", t("2026-11-08T10:00:00Z"), t("+1000000000-12-31T23:59:59.999999999Z"), MINUTE)
+        }
+    }
 }

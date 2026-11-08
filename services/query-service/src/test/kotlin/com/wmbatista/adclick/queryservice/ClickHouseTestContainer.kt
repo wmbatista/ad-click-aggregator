@@ -14,16 +14,18 @@ object ClickHouseTestContainer {
 
     const val IMAGE = "clickhouse/clickhouse-server:26.8.36.3"
 
-    val container: ClickHouseContainer by lazy {
+    val container: ClickHouseContainer by lazy { newContainer().apply { start() } }
+
+    /** A container of its own (not started), for tests that break it, e.g. by pausing it. */
+    fun newContainer(): ClickHouseContainer {
         val schema = requireNotNull(System.getProperty("clickhouse.schema")) {
             "System property clickhouse.schema is not set; run the tests through Gradle"
         }
-        ClickHouseContainer(IMAGE)
+        return ClickHouseContainer(IMAGE)
             .withDatabaseName("ad_clicks")
             .withUsername("ad_clicks")
             .withPassword("ad_clicks")
             .withCopyFileToContainer(MountableFile.forHostPath(schema), "/docker-entrypoint-initdb.d/001-schema.sql")
-            .apply { start() }
     }
 
     private val jdbcTemplate: JdbcTemplate by lazy { jdbcTemplate() }

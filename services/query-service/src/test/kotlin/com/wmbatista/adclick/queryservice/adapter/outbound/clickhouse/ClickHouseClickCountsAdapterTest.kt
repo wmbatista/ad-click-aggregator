@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.datasource.DriverManagerDataSource
+import java.time.Duration
 import java.time.Instant
 
 class ClickHouseClickCountsAdapterTest {
@@ -23,7 +24,7 @@ class ClickHouseClickCountsAdapterTest {
     private fun query(adId: String, from: String, to: String, granularity: Granularity) =
         ClickQuery.of(adId, t(from), t(to), granularity)
 
-    private val adapter = ClickHouseClickCountsAdapter(ClickHouseTestContainer.jdbcTemplate())
+    private val adapter = ClickHouseClickCountsAdapter(ClickHouseTestContainer.jdbcTemplate(), Duration.ofSeconds(3))
 
     @BeforeEach
     fun emptyTable() = ClickHouseTestContainer.truncate()
@@ -76,6 +77,7 @@ class ClickHouseClickCountsAdapterTest {
     fun `unreachable ClickHouse throws ClickStoreUnavailableException`() {
         val unreachable = ClickHouseClickCountsAdapter(
             JdbcTemplate(DriverManagerDataSource("jdbc:clickhouse://localhost:1/ad_clicks", "ad_clicks", "ad_clicks")),
+            Duration.ofSeconds(3),
         )
 
         assertThrows<ClickStoreUnavailableException> {

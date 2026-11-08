@@ -7,7 +7,11 @@ spring:
     username: ${CLICKHOUSE_USER:ad_clicks}
     password: ${CLICKHOUSE_PASSWORD:ad_clicks}
     # Fail fast when ClickHouse is unreachable, so callers get a 503 in seconds instead of 30.
-    hikari.connection-timeout: 2000  # ms; Hikari binds a plain long
+    hikari:
+      connection-timeout: 2000  # ms; Hikari binds plain longs
+      validation-timeout: 1000
+      # One attempt per query: a retried read would multiply query-service.clickhouse.read-timeout.
+      data-source-properties.retry: 0
 
 server:
   port: ${SERVER_PORT:8081}
@@ -15,3 +19,8 @@ server:
 management:
   # Only health is exposed over HTTP; Docker Compose uses it as the container healthcheck.
   endpoints.web.exposure.include: health
+
+query-service:
+  clickhouse:
+    # Upper bound on each ClickHouse read, so a stalled server yields 503 in seconds instead of hanging.
+    read-timeout: 3s
