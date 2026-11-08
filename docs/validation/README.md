@@ -38,11 +38,23 @@ dc() { docker compose -f infra/compose.yaml "$@"; }
 **ClickHouse** — rows as stored. `rows` above 1 means `SummingMergeTree` has not merged the inserts yet;
 that is expected, and is why every read must use `sum(click_count)`.
 
+Set `PREFIX` to the prefix **your** simulation printed (`Ads: sim-...-ad-1 .. (prefix sim-...)`);
+every run has its own, so the one in the sample output below will not match your data.
+
 ```bash
+PREFIX=sim-20261108163802   # replace with the prefix of your run
 dc exec clickhouse clickhouse-client --user ad_clicks --password ad_clicks -d ad_clicks -q "
   SELECT ad_id, minute, count() AS rows, sum(click_count) AS clicks
-  FROM clicks_per_minute WHERE ad_id LIKE 'sim-20261108163802-%'
+  FROM clicks_per_minute WHERE ad_id LIKE '$PREFIX-%'
   GROUP BY ad_id, minute ORDER BY ad_id, minute FORMAT PrettyCompact"
+```
+
+To see the most recent data whatever the run, order by time instead:
+
+```bash
+dc exec clickhouse clickhouse-client --user ad_clicks --password ad_clicks -d ad_clicks -q "
+  SELECT ad_id, minute, sum(click_count) AS clicks FROM clicks_per_minute
+  GROUP BY ad_id, minute ORDER BY minute DESC, ad_id LIMIT 20 FORMAT PrettyCompact"
 ```
 
 ```

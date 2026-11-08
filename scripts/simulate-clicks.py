@@ -162,7 +162,11 @@ def main():
           % (sent, total_clicks, summary["duplicatesSent"], elapsed, summary["achievedRate"]))
     print("Responses: " + ", ".join("%s=%d" % (k, v) for k, v in summary["statuses"].items()))
     print("Accepted (202): %d, of which %d were duplicates" % (accepted, sum(accepted_duplicates.values())))
+    print("Ads: %s-ad-1 .. %s-ad-%d (prefix %s)" % (prefix, prefix, args.ads, prefix))
     print("Window: from=%s to=%s" % (summary["from"], summary["to"]))
+    print("Query one ad:   scripts/query-metrics.py --ad %s --from %s --to %s"
+          % (ad_ids[0], summary["from"], summary["to"]))
+    print("In ClickHouse:  ... WHERE ad_id LIKE '%s-%%'" % prefix)
     if args.summary:
         with open(args.summary, "w") as out:
             json.dump(summary, out, indent=2)
