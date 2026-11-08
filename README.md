@@ -39,7 +39,7 @@ Each component in the diagram maps to a module or piece of infrastructure in thi
 
 | Diagram component     | Implementation                                                        |
 |-----------------------|-----------------------------------------------------------------------|
-| click service         | `services/click-processor`: receives `POST /click` and redirects the user |
+| click service         | `services/click-service`: receives `POST /click` and publishes click events |
 | click events          | Kafka topic, partitioned by `adId`                                    |
 | aggregation service   | `services/stream-processor`: groups clicks by `adId` and minute, upserts counts |
 | OLAP DB               | ClickHouse, storing `adId`, minute timestamp and `count`              |
@@ -86,7 +86,7 @@ The Gradle wrapper is committed, so no local Gradle installation is needed.
 
 ```bash
 ./gradlew build                            # compile and test every module
-./gradlew :services:click-processor:run    # run a single service
+./gradlew :services:click-service:run      # run a single service
 ```
 
 _The bootstrap script that brings up the whole system will be documented here once it exists._
@@ -104,7 +104,7 @@ ad-click-aggregator/
 ├── libs/
 │   └── click-event/           # shared click event contract
 ├── services/
-│   ├── click-processor/       # receives clicks, publishes events, redirects users
+│   ├── click-service/         # receives clicks and publishes click events
 │   ├── stream-processor/      # aggregates clicks into 1-minute windows
 │   └── query-service/         # serves click metrics to advertisers
 ├── infra/                     # Docker Compose and infrastructure configs (Kafka, ClickHouse, ...)

@@ -1,0 +1,3 @@
+spring:
+  application.name: click-service
+  threads.virtual.enabled: true
