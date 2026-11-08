@@ -21,6 +21,13 @@ spring:
         # The topic contract is ClickEvent itself; consumers must not depend on Java type headers.
         spring.json.add.type.headers: false
 
+server:
+  port: ${SERVER_PORT:8080}
+
+management:
+  # Only health is exposed over HTTP; Docker Compose uses it as the container healthcheck.
+  endpoints.web.exposure.include: health
+
 click-service:
   send-timeout: 6s
   topic:

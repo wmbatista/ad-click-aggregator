@@ -7,6 +7,7 @@ dependencies {
     implementation(libs.spring.boot.starter.webmvc)
     implementation(libs.spring.boot.starter.kafka)
     implementation(libs.spring.boot.starter.validation)
+    implementation(libs.spring.boot.starter.actuator)
     implementation(libs.jackson.module.kotlin)
 }
 
