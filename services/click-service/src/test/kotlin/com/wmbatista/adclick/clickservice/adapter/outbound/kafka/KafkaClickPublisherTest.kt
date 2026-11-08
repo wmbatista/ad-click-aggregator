@@ -60,6 +60,15 @@ class KafkaClickPublisherTest {
     }
 
     @Test
+    fun `publish fails when KafkaTemplate wraps a synchronous send failure`() {
+        // What KafkaTemplate actually throws when the broker is unreachable and max.block.ms elapses.
+        every { kafkaTemplate.send(any<String>(), any<String>(), any<ClickEvent>()) } throws
+            org.springframework.kafka.KafkaException("Send failed", KafkaException("metadata timeout"))
+
+        assertThrows<ClickPublishingException> { publisher().publish(click) }
+    }
+
+    @Test
     fun `publish fails when ack does not arrive within timeout`() {
         stubSend(CompletableFuture())
 

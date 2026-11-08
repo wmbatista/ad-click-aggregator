@@ -7,6 +7,7 @@ import com.wmbatista.adclick.event.ClickEvent
 import org.apache.kafka.common.KafkaException
 import org.springframework.kafka.core.KafkaTemplate
 import java.time.Duration
+import org.springframework.kafka.KafkaException as SpringKafkaException
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
@@ -33,6 +34,9 @@ class KafkaClickPublisher(
         } catch (e: TimeoutException) {
             throw ClickPublishingException("Timed out after $sendTimeout publishing click ${click.clickId}", e)
         } catch (e: KafkaException) {
+            throw ClickPublishingException("Failed to send click ${click.clickId}", e)
+        } catch (e: SpringKafkaException) {
+            // KafkaTemplate wraps synchronous send failures, e.g. no broker metadata within max.block.ms.
             throw ClickPublishingException("Failed to send click ${click.clickId}", e)
         }
     }
