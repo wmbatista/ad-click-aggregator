@@ -7,8 +7,9 @@ The goal of this project is to go beyond the whiteboard: we will build, configur
 every component of the system, run it locally, exercise its use cases, and verify that it behaves as
 designed.
 
-> **Status:** early stage. The sections below describe the target state of the project; they will be
-> filled in as each component is implemented.
+> **Status:** the write and read paths run end to end locally (click → Kafka → aggregation →
+> ClickHouse → query). Still missing: the click redirect, click deduplication
+> ([TD-1](docs/tech-debt.md)), simulation scripts and validation guides.
 
 ## The Problem
 
@@ -102,6 +103,15 @@ scripts/stack.sh          # build and start everything, waiting until healthy (s
 scripts/stack.sh down     # stop the containers, keeping Kafka and ClickHouse data
 scripts/stack.sh reset    # stop the containers and delete all data
 ```
+
+Once it is up, register a click and query the metrics for the current minute:
+
+```bash
+curl -i -X POST localhost:8080/click -H 'Content-Type: application/json' -d '{"adId":"ad-1"}'
+curl -s "localhost:8081/ads/ad-1/clicks?from=$(date -u +%Y-%m-%dT%H:%M:00Z)&to=$(date -u -v+1M +%Y-%m-%dT%H:%M:00Z)"
+```
+
+(`date -v` is the macOS syntax; on Linux use `date -u -d '+1 min' ...`.)
 
 ## Repository Layout
 

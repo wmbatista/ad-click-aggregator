@@ -32,6 +32,8 @@ up() {
 
 Stack is up:
   click service     POST http://localhost:8080/click
+  query service     GET  http://localhost:8081/ads/{adId}/clicks?from=<instant>&to=<instant>[&granularity=MINUTE|HOUR|DAY]
+  stream processor  http://localhost:8082/actuator/health
   Kafka             localhost:9092 (topic click-events)
   ClickHouse HTTP   http://localhost:8123 (user ad_clicks, password ad_clicks, database ad_clicks)
 EOF
