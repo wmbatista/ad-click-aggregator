@@ -1,0 +1,44 @@
+spring:
+  application.name: stream-processor
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: stream-processor
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      # One poll is one batch: aggregated in memory and written to ClickHouse in a single insert.
+      max-poll-records: 500
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      # A record that cannot be deserialized arrives with a null value instead of failing the poll.
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+        # The topic contract is ClickEvent itself; producers send no Java type headers.
+        spring.json.value.default.type: com.wmbatista.adclick.event.ClickEvent
+        spring.json.use.type.headers: false
+    listener:
+      type: batch
+      # Offsets of a poll are committed only after the listener returned normally, i.e. after the
+      # ClickHouse insert succeeded.
+      ack-mode: batch
+  datasource:
+    url: ${CLICKHOUSE_URL:jdbc:clickhouse://localhost:8123/ad_clicks}
+    username: ${CLICKHOUSE_USER:ad_clicks}
+    password: ${CLICKHOUSE_PASSWORD:ad_clicks}
+    driver-class-name: com.clickhouse.jdbc.Driver
+
+server:
+  port: ${SERVER_PORT:8082}
+
+management:
+  # Only health is exposed over HTTP; Docker Compose uses it as the container healthcheck.
+  endpoints.web.exposure.include: health
+
+stream-processor:
+  topic: click-events
+  # Backoff between retries of a batch whose insert failed. Retries never stop: giving up would
+  # commit the offsets and lose the batch's clicks.
+  retry:
+    initial-interval: 500ms
+    multiplier: 2.0
+    max-interval: 30s
