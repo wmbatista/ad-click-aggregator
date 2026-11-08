@@ -121,5 +121,6 @@ Implemented in `services/query-service` (currently only a placeholder `Main.kt`)
 - Click redirect (`302` to the advertiser URL) is not part of the current `POST /click` flow.
 - Batch size and flush interval of the aggregation service (diagram says "500(?)").
 - Deduplication strategy by `clickId` in the aggregator, and how it interacts with the additive
-  upsert (re-processing a batch after a crash would add its counts twice).
+  upsert (re-processing a batch after a crash would add its counts twice). Deferred on purpose:
+  tracked as TD-1 in [`tech-debt.md`](tech-debt.md).
 - Client-side idempotency key to close the `503`-but-written window in the click service.

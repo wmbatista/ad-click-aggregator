@@ -3,6 +3,7 @@ kotlin = "2.4.21"
 junit = "5.13.4"
 spring-boot = "4.1.2"
 mockk = "1.14.12"
+clickhouse-jdbc = "0.11.0"
 
 [libraries]
 # Gradle plugins (consumed by build-logic)
@@ -23,3 +24,14 @@ spring-boot-starter-kafka = { module = "org.springframework.boot:spring-boot-sta
 spring-boot-starter-validation = { module = "org.springframework.boot:spring-boot-starter-validation" }
 spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
 jackson-module-kotlin = { module = "tools.jackson.module:jackson-module-kotlin" }
+spring-boot-starter-jdbc = { module = "org.springframework.boot:spring-boot-starter-jdbc" }
+spring-boot-starter-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator" }
+spring-boot-testcontainers = { module = "org.springframework.boot:spring-boot-testcontainers" }
+
+# ClickHouse
+clickhouse-jdbc = { module = "com.clickhouse:clickhouse-jdbc", version.ref = "clickhouse-jdbc" }
+
+# Testcontainers (versions managed by the Spring Boot BOM)
+testcontainers-junit-jupiter = { module = "org.testcontainers:testcontainers-junit-jupiter" }
+testcontainers-clickhouse = { module = "org.testcontainers:testcontainers-clickhouse" }
+testcontainers-kafka = { module = "org.testcontainers:testcontainers-kafka" }
