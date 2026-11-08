@@ -1,4 +1,4 @@
-# Local stack for the ad click aggregator. Start it with scripts/bootstrap.sh.
+# Local stack for the ad click aggregator. Start it with scripts/stack.sh.
 # Contracts (names, ports, versions): docs/superpowers/specs/2026-11-08-shared-contracts-design.md
 name: ad-click-aggregator
 # Ports are published on 127.0.0.1 only: Kafka and ClickHouse run without auth or with a known password.

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Brings the whole local stack up (or down) with a single command.
 #
-#   scripts/bootstrap.sh [up]   build the service jars and start everything, waiting until healthy
-#   scripts/bootstrap.sh down   stop the containers, keeping Kafka and ClickHouse data
-#   scripts/bootstrap.sh reset  stop the containers and delete all data
+#   scripts/stack.sh [up]   build the service jars and start everything, waiting until healthy
+#   scripts/stack.sh down   stop the containers, keeping Kafka and ClickHouse data
+#   scripts/stack.sh reset  stop the containers and delete all data
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

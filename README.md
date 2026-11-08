@@ -92,7 +92,16 @@ The Gradle wrapper is committed, so no local Gradle installation is needed.
 ./gradlew :services:click-service:run      # run a single service
 ```
 
-_The bootstrap script that brings up the whole system will be documented here once it exists._
+### Running the Local Stack
+
+`scripts/stack.sh` builds the service jars and manages the whole stack (Kafka, ClickHouse and the
+services) through Docker Compose. It needs Docker with the Compose v2 plugin.
+
+```bash
+scripts/stack.sh          # build and start everything, waiting until healthy (same as `up`)
+scripts/stack.sh down     # stop the containers, keeping Kafka and ClickHouse data
+scripts/stack.sh reset    # stop the containers and delete all data
+```
 
 ## Repository Layout
 
@@ -111,7 +120,7 @@ ad-click-aggregator/
 │   ├── stream-processor/      # aggregates clicks into 1-minute windows
 │   └── query-service/         # serves click metrics to advertisers
 ├── infra/                     # Docker Compose and infrastructure configs (Kafka, ClickHouse, ...)
-├── scripts/                   # bootstrap and use case simulation scripts
+├── scripts/                   # stack management and use case simulation scripts
 └── docs/                      # architecture diagram and validation guides
 ```
 
