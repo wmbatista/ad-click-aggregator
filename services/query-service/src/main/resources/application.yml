@@ -1,0 +1,17 @@
+spring:
+  application.name: query-service
+  # Each request blocks on a ClickHouse query; virtual threads keep that cheap.
+  threads.virtual.enabled: true
+  datasource:
+    url: ${CLICKHOUSE_URL:jdbc:clickhouse://localhost:8123/ad_clicks}
+    username: ${CLICKHOUSE_USER:ad_clicks}
+    password: ${CLICKHOUSE_PASSWORD:ad_clicks}
+    # Fail fast when ClickHouse is unreachable, so callers get a 503 in seconds instead of 30.
+    hikari.connection-timeout: 2000  # ms; Hikari binds a plain long
+
+server:
+  port: ${SERVER_PORT:8081}
+
+management:
+  # Only health is exposed over HTTP; Docker Compose uses it as the container healthcheck.
+  endpoints.web.exposure.include: health
