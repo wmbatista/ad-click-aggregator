@@ -37,6 +37,9 @@ Each component in the diagram maps to a module or piece of infrastructure in thi
 
 ![Ad Click Aggregator architecture](docs/architecture.png)
 
+A text version of the diagram, with per-component details and open points, lives in
+[`docs/architecture.md`](docs/architecture.md).
+
 | Diagram component     | Implementation                                                        |
 |-----------------------|-----------------------------------------------------------------------|
 | click service         | `services/click-service`: receives `POST /click` and publishes click events |
