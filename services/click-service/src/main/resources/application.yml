@@ -12,8 +12,9 @@ spring:
         enable.idempotence: true
         linger.ms: 5
         request.timeout.ms: 3000
-        # Must not exceed click-service.send-timeout: Kafka gives up before the request does, so a
-        # click answered with 503 is never written later (see ProducerTimeoutConfigurationTest).
+        # Must not exceed click-service.send-timeout (checked at startup): Kafka settles the send before
+        # the request gives up, which narrows -- but cannot close -- the window in which a click answered
+        # with 503 is still written by the broker. Only a client idempotency key closes it.
         delivery.timeout.ms: 5000
         # Bounds how long send() blocks waiting for metadata when the broker is unreachable.
         max.block.ms: 1000

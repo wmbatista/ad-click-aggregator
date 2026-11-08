@@ -7,11 +7,13 @@ import com.wmbatista.adclick.clickservice.application.port.outbound.PublishClick
 import com.wmbatista.adclick.clickservice.application.service.RegisterClickService
 import com.wmbatista.adclick.event.ClickEvent
 import org.apache.kafka.clients.admin.NewTopic
+import org.springframework.boot.kafka.autoconfigure.KafkaProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.kafka.config.TopicBuilder
 import org.springframework.kafka.core.KafkaTemplate
 import java.time.Clock
+import java.time.Duration
 import java.util.UUID
 
 @Configuration
@@ -27,7 +29,28 @@ class ClickServiceConfiguration {
     fun publishClickPort(
         kafkaTemplate: KafkaTemplate<String, ClickEvent>,
         properties: ClickServiceProperties,
-    ): PublishClickPort = KafkaClickPublisher(kafkaTemplate, properties.topic.name, properties.sendTimeout)
+        kafkaProperties: KafkaProperties,
+    ): PublishClickPort {
+        checkDeliveryTimeoutWithinSendTimeout(kafkaProperties, properties.sendTimeout)
+        return KafkaClickPublisher(kafkaTemplate, properties.topic.name, properties.sendTimeout)
+    }
+
+    /**
+     * Fails startup if Kafka could keep retrying a send after the request has already answered 503,
+     * which would make "503, then written anyway" (and a double count on the client's retry) routine.
+     */
+    private fun checkDeliveryTimeoutWithinSendTimeout(kafkaProperties: KafkaProperties, sendTimeout: Duration) {
+        val deliveryTimeoutMs = kafkaProperties.producer.properties["delivery.timeout.ms"]?.toLong()
+            ?: KAFKA_DEFAULT_DELIVERY_TIMEOUT_MS
+        check(deliveryTimeoutMs <= sendTimeout.toMillis()) {
+            "spring.kafka.producer.properties.delivery.timeout.ms ($deliveryTimeoutMs ms) must not exceed " +
+                "click-service.send-timeout ($sendTimeout)"
+        }
+    }
+
+    private companion object {
+        const val KAFKA_DEFAULT_DELIVERY_TIMEOUT_MS = 120_000L
+    }
 
     @Bean
     fun registerClickUseCase(

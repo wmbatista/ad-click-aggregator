@@ -80,9 +80,12 @@ hexagonal architecture) the other services are expected to follow.
   (default 120s), so a request could time out with 503 while the record still lands later; the
   caller's retry would then get a new `clickId` and the click would be counted twice. To avoid
   this, the producer's `delivery.timeout.ms` (which must be ≥ `linger.ms` + `request.timeout.ms`)
-  is set no higher than the use case's wait timeout, so the send's outcome is final before the HTTP
-  response is chosen. Both values come from configuration and a unit/config test pins the
-  relationship.
+  is set no higher than the use case's wait timeout, so Kafka settles the send before the HTTP
+  response is chosen. The service refuses to start if the configured values break this, and a unit
+  test pins the packaged defaults. This **narrows** the window but cannot close it: when
+  `delivery.timeout.ms` expires on the client, the broker may already have appended (or may still
+  append) the record, so a rare 503 can still be followed by a write. Fully preventing that double
+  count needs a client-supplied idempotency key, which is a non-goal of this version.
 - **Testability seams:** the current time comes from an injected `java.time.Clock` and the click id
   from an injected id generator, so the use case is deterministic in tests.
 - **Mocking library:** MockK (idiomatic for Kotlin), added to the version catalog.

@@ -9,9 +9,10 @@ import org.springframework.core.io.ClassPathResource
 import java.util.Properties
 
 /**
- * Guards the producer settings in application.yml. In particular, Kafka must give up on a send
- * before the HTTP request does, so a click answered with 503 is never written to the topic later
- * (the client's retry would then be counted twice).
+ * Guards the producer settings in application.yml. In particular, Kafka must settle a send before
+ * the HTTP request gives up. This narrows the window in which a click answered with 503 is still
+ * written by the broker (and counted twice on the client's retry); it cannot close it, since a
+ * client-side delivery timeout does not prove the broker did not append the record.
  */
 class ProducerTimeoutConfigurationTest {
 
