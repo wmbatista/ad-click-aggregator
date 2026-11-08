@@ -1,3 +1,28 @@
 spring:
   application.name: click-service
+  # Each request blocks until Kafka acknowledges the click; virtual threads keep that cheap.
   threads.virtual.enabled: true
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      acks: all
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
+      properties:
+        enable.idempotence: true
+        linger.ms: 5
+        request.timeout.ms: 3000
+        # Must not exceed click-service.send-timeout: Kafka gives up before the request does, so a
+        # click answered with 503 is never written later (see ProducerTimeoutConfigurationTest).
+        delivery.timeout.ms: 5000
+        # Bounds how long send() blocks waiting for metadata when the broker is unreachable.
+        max.block.ms: 1000
+        # The topic contract is ClickEvent itself; consumers must not depend on Java type headers.
+        spring.json.add.type.headers: false
+
+click-service:
+  send-timeout: 6s
+  topic:
+    name: click-events
+    partitions: 12
+    replication-factor: 1
