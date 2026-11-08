@@ -42,11 +42,11 @@ The only thing the two paths share is the OLAP store.
 
 | Diagram component   | Implementation                       | Status      |
 |---------------------|--------------------------------------|-------------|
-| click service       | `services/click-service`             | In progress |
+| click service       | `services/click-service`             | Done (no redirect yet) |
 | click events        | Kafka topic `click-events`           | Configured  |
-| aggregation service | `services/stream-processor`          | Placeholder |
-| OLAP DB             | ClickHouse                           | Not started |
-| query service       | `services/query-service`             | Placeholder |
+| aggregation service | `services/stream-processor`          | Done        |
+| OLAP DB             | ClickHouse                           | Done        |
+| query service       | `services/query-service`             | Done        |
 | (event contract)    | `libs/click-event` (`ClickEvent`)    | Done        |
 
 ### Click service
@@ -85,18 +85,30 @@ Consumes `click events` and turns them into per-minute counts. As annotated in t
   count is added to it.
 - Can later be replaced by **Apache Flink** for extra robustness (checkpointing, resilience).
 
-Implemented in `services/stream-processor` (currently only a placeholder `Main.kt`). The `clickId` in
-each event exists so this stage can deduplicate re-deliveries.
+Implemented in `services/stream-processor` (Spring Boot, hexagonal layout):
+
+- Batch listener on consumer group `stream-processor`: one poll (`max.poll.records=500`) is one batch.
+- Each batch is aggregated by `(adId, minute UTC)` and written to ClickHouse in a single insert;
+  offsets are committed only after the insert succeeds.
+- A failed insert is retried with exponential backoff (500 ms up to 30 s) and never given up, so
+  clicks are not lost. A record that cannot be deserialized is logged and skipped.
+- The `clickId` in each event exists so this stage can deduplicate re-deliveries, but it is not used
+  yet (TD-1).
 
 ### OLAP DB
 
-The diagram lists BigQuery, Redshift, Snowflake, etc.; this project uses **ClickHouse**. Row shape:
+The diagram lists BigQuery, Redshift, Snowflake, etc.; this project uses **ClickHouse**. Table
+`ad_clicks.clicks_per_minute` (schema in `infra/clickhouse/init/001-schema.sql`):
 
-| Column      | Meaning                                  |
-|-------------|------------------------------------------|
-| `adId`      | the ad                                   |
-| `timestamp` | start of the 1-minute bucket (epoch)     |
-| `count`     | clicks for that ad in that minute        |
+| Column        | Meaning                                  |
+|---------------|------------------------------------------|
+| `ad_id`       | the ad                                   |
+| `minute`      | start of the 1-minute bucket (UTC)       |
+| `click_count` | clicks for that ad in that minute        |
+
+The engine is `SummingMergeTree`: writers only insert delta rows and ClickHouse adds rows with the
+same `(ad_id, minute)` on merge, which is the diagram's "upsert". Merges are asynchronous, so readers
+always use `sum(click_count)` with `GROUP BY`.
 
 ### Query service
 
@@ -104,7 +116,17 @@ Serves click metrics to the advertiser's browser by reading the aggregated rows 
 Because data is pre-aggregated per minute, queries over any range ≥ 1 minute are a scan over a
 small number of rows, which is what keeps them sub-second.
 
-Implemented in `services/query-service` (currently only a placeholder `Main.kt`).
+Implemented in `services/query-service` (Spring Boot, hexagonal layout):
+
+```
+GET /ads/{adId}/clicks?from=<instant>&to=<instant>&granularity=<MINUTE|HOUR|DAY>
+```
+
+- `from` (inclusive) and `to` (exclusive) are ISO-8601 UTC instants; `granularity` defaults to
+  `MINUTE`. The range is aligned to the granularity and limited to 1,440 buckets.
+- Buckets are zero-filled, so every bucket in the range appears in order; an unknown `adId` returns
+  zeros.
+- Invalid parameters answer `400`; ClickHouse unavailable or too slow answers `503`.
 
 ## How the design meets the non-functional requirements
 
@@ -119,7 +141,11 @@ Implemented in `services/query-service` (currently only a placeholder `Main.kt`)
 ## Open points
 
 - Click redirect (`302` to the advertiser URL) is not part of the current `POST /click` flow.
-- Batch size and flush interval of the aggregation service (diagram says "500(?)").
+- Batch size of the aggregation service: one Kafka poll of up to 500 events, flushed as soon as it
+  arrives (no timer). Holds 10k clicks/s locally (see
+  [validation guide 02](validation/02-throughput.md)).
+- After a crash, the restarted aggregator waits for the dead consumer's session to expire (45 s)
+  before it resumes; see [validation guide 03](validation/03-duplicate-clicks.md).
 - Deduplication strategy by `clickId` in the aggregator, and how it interacts with the additive
   upsert (re-processing a batch after a crash would add its counts twice). Deferred on purpose:
   tracked as TD-1 in [`tech-debt.md`](tech-debt.md).
