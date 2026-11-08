@@ -8,8 +8,8 @@ every component of the system, run it locally, exercise its use cases, and verif
 designed.
 
 > **Status:** the write and read paths run end to end locally (click → Kafka → aggregation →
-> ClickHouse → query). Still missing: the click redirect, click deduplication
-> ([TD-1](docs/tech-debt.md)), simulation scripts and validation guides.
+> ClickHouse → query), with simulation scripts and [validation guides](docs/validation/README.md).
+> Still missing: the click redirect and click deduplication ([TD-1](docs/tech-debt.md)).
 
 ## The Problem
 
@@ -112,6 +112,18 @@ curl -s "localhost:8081/ads/ad-1/clicks?from=$(date -u +%Y-%m-%dT%H:%M:00Z)&to=$
 ```
 
 (`date -v` is the macOS syntax; on Linux use `date -u -d '+1 min' ...`.)
+
+### Simulating and Validating
+
+```bash
+scripts/simulate-clicks.py --rate 1000 --duration 10 --ads 20 --summary /tmp/run.json
+scripts/query-metrics.py --summary /tmp/run.json     # every ad's count matches the accepted clicks
+scripts/query-metrics.py --ad <adId> --last 1h       # metrics as an advertiser
+```
+
+`--duplicates 0.2` sends 20% of the clicks twice. The
+[validation guides](docs/validation/README.md) walk through each use case, including throughput at
+10k clicks/s and component failures, and show how to inspect Kafka, ClickHouse and the logs.
 
 ## Repository Layout
 

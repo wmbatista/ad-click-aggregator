@@ -141,7 +141,11 @@ GET /ads/{adId}/clicks?from=<instant>&to=<instant>&granularity=<MINUTE|HOUR|DAY>
 ## Open points
 
 - Click redirect (`302` to the advertiser URL) is not part of the current `POST /click` flow.
-- Batch size and flush interval of the aggregation service (diagram says "500(?)").
+- Batch size of the aggregation service: one Kafka poll of up to 500 events, flushed as soon as it
+  arrives (no timer). Holds 10k clicks/s locally (see
+  [validation guide 02](validation/02-throughput.md)).
+- After a crash, the restarted aggregator waits for the dead consumer's session to expire (45 s)
+  before it resumes; see [validation guide 03](validation/03-duplicate-clicks.md).
 - Deduplication strategy by `clickId` in the aggregator, and how it interacts with the additive
   upsert (re-processing a batch after a crash would add its counts twice). Deferred on purpose:
   tracked as TD-1 in [`tech-debt.md`](tech-debt.md).
