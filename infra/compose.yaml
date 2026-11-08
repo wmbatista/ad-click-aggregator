@@ -1,12 +1,13 @@
 # Local stack for the ad click aggregator. Start it with scripts/bootstrap.sh.
 # Contracts (names, ports, versions): docs/superpowers/specs/2026-11-08-shared-contracts-design.md
 name: ad-click-aggregator
+# Ports are published on 127.0.0.1 only: Kafka and ClickHouse run without auth or with a known password.
 
 services:
   kafka:
     image: apache/kafka:4.2.2
     ports:
-      - "9092:9092"
+      - "127.0.0.1:9092:9092"
     environment:
       # Single-node KRaft: this node is both broker and controller.
       KAFKA_NODE_ID: 1
@@ -55,15 +56,17 @@ services:
   clickhouse:
     image: clickhouse/clickhouse-server:26.8.36.3
     ports:
-      - "8123:8123"
-      - "9000:9000"
+      - "127.0.0.1:8123:8123"
+      - "127.0.0.1:9000:9000"
     environment:
       CLICKHOUSE_USER: ad_clicks
       CLICKHOUSE_PASSWORD: ad_clicks
       CLICKHOUSE_DB: ad_clicks
       CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+      # The schema is idempotent, so run it on every start: an interrupted first init can never
+      # leave a data volume without the table.
+      CLICKHOUSE_ALWAYS_RUN_INITDB_SCRIPTS: "true"
     volumes:
-      # Runs only when the data volume is empty (first start or after `bootstrap.sh reset`).
       - ./clickhouse/init:/docker-entrypoint-initdb.d:ro
       - clickhouse-data:/var/lib/clickhouse
     ulimits:
@@ -71,7 +74,7 @@ services:
         soft: 262144
         hard: 262144
     healthcheck:
-      test: ["CMD", "clickhouse-client", "--user", "ad_clicks", "--password", "ad_clicks", "-q", "SELECT 1"]
+      test: ["CMD", "clickhouse-client", "--user", "ad_clicks", "--password", "ad_clicks", "-q", "SELECT 1 FROM ad_clicks.clicks_per_minute LIMIT 1"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -84,7 +87,7 @@ services:
       args:
         JAR_FILE: services/click-service/build/libs/click-service.jar
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
     depends_on:
